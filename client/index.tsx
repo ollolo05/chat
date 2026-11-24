@@ -1,0 +1,1 @@
+// Deprecated: Please open index.html directly.

@@ -1,0 +1,200 @@
+/*
+ * Source stylesheet. Do not edit client/styles.css by hand:
+ * run `npm run build:css` after changing this file, index.html or app.js.
+ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        color-scheme: dark;
+        /* Real visible height; updated from JS when the virtual keyboard opens */
+        --app-h: 100vh;
+    }
+
+    @supports (height: 100dvh) {
+        :root {
+            --app-h: 100dvh;
+        }
+    }
+
+    html,
+    body {
+        height: 100%;
+    }
+
+    body {
+        @apply bg-ink-950 font-sans text-slate-100 antialiased;
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-tap-highlight-color: transparent;
+        text-size-adjust: 100%;
+    }
+
+    /* Thin, low-contrast scrollbars (Firefox + Chromium/Safari) */
+    * {
+        scrollbar-width: thin;
+        scrollbar-color: #26324d transparent;
+    }
+
+    ::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #26324d;
+        border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #34436a;
+    }
+
+    :focus-visible {
+        outline: 2px solid #22d3ee;
+        outline-offset: 2px;
+    }
+}
+
+@layer components {
+    .app-height {
+        height: var(--app-h);
+    }
+
+    /* Static, cheap background: two gradients painted once, no fixed attachment, no animation */
+    .neon-backdrop {
+        background:
+            radial-gradient(1200px 600px at 10% -10%, rgba(34, 211, 238, 0.08), transparent 60%),
+            radial-gradient(900px 500px at 110% 110%, rgba(232, 121, 249, 0.07), transparent 60%),
+            #070a12;
+    }
+
+    .chat-grid {
+        background-color: #0a0f1b;
+        background-image:
+            linear-gradient(rgba(34, 211, 238, 0.035) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(34, 211, 238, 0.035) 1px, transparent 1px);
+        background-size: 32px 32px;
+    }
+
+    .panel {
+        @apply border border-ink-600 bg-ink-900;
+    }
+
+    /* Measured glow: one soft shadow, only on key elements */
+    .neon-frame {
+        box-shadow: 0 0 0 1px rgba(34, 211, 238, 0.18), 0 0 24px -6px rgba(34, 211, 238, 0.25);
+    }
+
+    .neon-title {
+        @apply font-display tracking-wider text-cyan-200;
+        text-shadow: 0 0 10px rgba(34, 211, 238, 0.45);
+    }
+
+    /* 44x44 px touch target for every icon button */
+    .icon-btn {
+        @apply inline-grid h-11 w-11 shrink-0 place-items-center rounded-full text-slate-400 transition-colors duration-150;
+    }
+
+    .icon-btn:hover {
+        @apply bg-ink-700 text-cyan-200;
+    }
+
+    .icon-btn:disabled {
+        @apply cursor-not-allowed opacity-50;
+    }
+
+    .neon-btn {
+        @apply rounded-lg bg-neon-cyan px-4 font-semibold text-ink-950 transition-[background-color,box-shadow] duration-150;
+        min-height: 44px;
+    }
+
+    .neon-btn:hover:not(:disabled) {
+        @apply bg-cyan-300;
+        box-shadow: 0 0 16px -2px rgba(34, 211, 238, 0.55);
+    }
+
+    .neon-btn:disabled {
+        @apply cursor-not-allowed opacity-50;
+    }
+
+    .ghost-btn {
+        @apply rounded-lg border border-ink-600 bg-ink-800 px-4 font-medium text-slate-200 transition-colors duration-150;
+        min-height: 44px;
+    }
+
+    .ghost-btn:hover {
+        @apply border-slate-500 bg-ink-700;
+    }
+
+    .danger-btn {
+        @apply rounded-lg bg-rose-600 px-4 font-semibold text-white transition-colors duration-150;
+        min-height: 44px;
+    }
+
+    .danger-btn:hover {
+        @apply bg-rose-700;
+    }
+
+    .neon-input {
+        @apply w-full rounded-lg border border-ink-600 bg-ink-800 text-base text-slate-100 placeholder-slate-400 transition-[border-color,box-shadow] duration-150;
+    }
+
+    .neon-input:focus {
+        @apply border-neon-cyan outline-none;
+        box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18);
+    }
+
+    .bubble-self {
+        @apply rounded-tr-sm border border-cyan-400/30 bg-bubble-self text-cyan-50;
+    }
+
+    .bubble-other {
+        @apply rounded-tl-sm border border-ink-600 bg-bubble-other text-slate-100;
+    }
+
+    /* Long words / URLs never overflow horizontally */
+    .wrap-anywhere {
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
+    /* New-message animation: transform + opacity only (GPU-friendly) */
+    .msg-enter {
+        animation: msg-in 160ms ease-out both;
+    }
+
+    @keyframes msg-in {
+        from {
+            opacity: 0;
+            transform: translateY(6px);
+        }
+
+        to {
+            opacity: 1;
+            transform: none;
+        }
+    }
+
+    .sidebar-panel {
+        will-change: transform;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}

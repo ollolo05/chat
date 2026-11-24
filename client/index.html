@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <!-- interactive-widget: the layout shrinks when the virtual keyboard opens (Android Chrome) -->
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content">
+    <meta name="theme-color" content="#070a12">
+    <meta name="color-scheme" content="dark">
+    <title>Chat</title>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon_io/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon_io/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="favicon_io/apple-touch-icon.png">
+    <link rel="manifest" href="favicon_io/site.webmanifest">
+
+    <!-- Fonts: Inter for text, Orbitron only for titles -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@600&display=swap"
+        rel="stylesheet">
+
+    <!-- Precompiled Tailwind (npm run build:css): no in-browser CSS compilation -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Lucide Icons (fixed version) + app scripts, deferred so they don't block rendering -->
+    <script defer src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+    <script defer src="storage.js"></script>
+    <script defer src="app.js"></script>
+</head>
+
+<body>
+    <!-- App Container -->
+    <div id="app" class="app-height neon-backdrop relative flex w-full items-center justify-center p-0 md:p-4 lg:p-6">
+
+        <!-- Login Modal -->
+        <div id="login-modal"
+            class="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-ink-950/95 p-4">
+            <div class="panel neon-frame my-auto w-full max-w-md rounded-2xl p-6 sm:p-8">
+                <div class="mb-6 flex flex-col items-center text-center">
+                    <div
+                        class="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-cyan-400/40 bg-ink-800 text-neon-cyan">
+                        <i data-lucide="message-square" class="h-8 w-8"></i>
+                    </div>
+                    <h1 class="neon-title text-2xl">Welcome to Chat</h1>
+                    <p class="mt-2 text-slate-300">Choose a display name to join the chat.</p>
+                </div>
+                <form id="login-form" class="space-y-4" novalidate>
+                    <div>
+                        <label for="username-input" class="mb-1 block text-sm font-medium text-slate-200">Display
+                            name</label>
+                        <input type="text" id="username-input" autocomplete="nickname" class="neon-input px-4 py-3"
+                            placeholder="e.g. John Doe" maxlength="20" required autofocus
+                            aria-describedby="username-hint">
+                        <p id="username-hint" class="mt-1 text-xs text-slate-400">Up to 20 characters. Other users will
+                            see this name.</p>
+                    </div>
+                    <button type="submit" id="join-btn" class="neon-btn w-full py-3" disabled>Join chat</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Main Chat Interface (Hidden initially) -->
+        <div id="chat-interface"
+            class="panel hidden relative flex h-full w-full max-w-[1600px] overflow-hidden md:rounded-2xl md:neon-frame">
+
+            <!-- Sidebar -->
+            <aside id="sidebar"
+                class="sidebar-panel absolute inset-y-0 left-0 z-30 w-[85%] max-w-sm -translate-x-full transform border-r border-ink-600 bg-ink-900 transition-transform duration-200 ease-out md:relative md:w-72 md:max-w-none md:translate-x-0 lg:w-80">
+                <div class="flex h-full flex-col">
+                    <!-- Sidebar Header (User Info) -->
+                    <div class="flex items-center justify-between gap-2 border-b border-ink-600 p-3 sm:p-4"
+                        style="padding-top: max(0.75rem, env(safe-area-inset-top));">
+                        <div class="flex min-w-0 items-center gap-3">
+                            <div id="current-user-avatar"
+                                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-cyan-400/50 bg-ink-800 font-bold text-cyan-200">
+                                ?
+                            </div>
+                            <div class="min-w-0">
+                                <p id="current-user-name" class="truncate font-semibold text-slate-100">User</p>
+                                <p id="current-user-status" class="flex items-center gap-1 text-xs text-neon-green">
+                                    <span id="current-user-status-dot"
+                                        class="block h-2 w-2 rounded-full bg-neon-green"></span>
+                                    <span id="current-user-status-text">Online</span>
+                                </p>
+                            </div>
+                        </div>
+                        <button id="close-sidebar-btn" type="button" class="icon-btn md:hidden"
+                            aria-label="Close user list">
+                            <i data-lucide="x" class="h-5 w-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Search -->
+                    <div class="px-3 py-3 sm:px-4">
+                        <div class="relative">
+                            <label for="user-search" class="sr-only">Search online users</label>
+                            <input type="search" id="user-search" placeholder="Search online users"
+                                autocomplete="off" class="neon-input py-2.5 pl-10 pr-4 sm:text-sm">
+                            <i data-lucide="search"
+                                class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"></i>
+                        </div>
+                    </div>
+
+                    <!-- Users List -->
+                    <div class="flex-1 overflow-y-auto overscroll-contain">
+                        <div class="px-3 pb-2 pt-1 sm:px-4">
+                            <h2
+                                class="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+                                <i data-lucide="users" class="h-3.5 w-3.5"></i>
+                                <span>Online users (<span id="online-count">0</span>)</span>
+                            </h2>
+                            <div id="users-list" class="space-y-1" aria-live="polite">
+                                <!-- Users injected here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sidebar Footer -->
+                    <div id="connection-footer" class="border-t border-ink-600 p-4 text-center text-xs text-slate-400"
+                        style="padding-bottom: max(1rem, env(safe-area-inset-bottom));">
+                        Connecting to the server…
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Sidebar Overlay (mobile) -->
+            <div id="sidebar-overlay" class="absolute inset-0 z-20 hidden bg-black/60 md:hidden"></div>
+
+            <!-- Chat Window -->
+            <main id="chat-window" class="relative flex min-w-0 flex-1 flex-col bg-ink-900">
+                <!-- Chat Header -->
+                <header class="flex min-h-[56px] shrink-0 items-center gap-2 border-b border-ink-600 bg-ink-900 px-2 sm:px-4"
+                    style="padding-top: env(safe-area-inset-top);">
+                    <button id="mobile-menu-btn" type="button" class="icon-btn md:hidden"
+                        aria-label="Show online users" aria-controls="sidebar" aria-expanded="false">
+                        <i data-lucide="menu" class="h-6 w-6"></i>
+                    </button>
+                    <div class="min-w-0 flex-1">
+                        <p class="neon-title truncate text-base">Chat</p>
+                        <p id="history-status" class="truncate text-xs text-slate-400">History saved in this browser</p>
+                    </div>
+                    <div id="offline-badge" role="status"
+                        class="hidden items-center gap-1 rounded-full border border-red-400/40 bg-red-500/10 px-2.5 py-1 text-xs text-red-300">
+                        <i data-lucide="wifi-off" class="h-3.5 w-3.5"></i>
+                        <span class="hidden sm:inline">Connection lost. Reconnecting…</span>
+                        <span class="sm:hidden">Offline</span>
+                    </div>
+                    <button id="clear-chat-btn" type="button" class="icon-btn" aria-label="Clear chat"
+                        title="Clear chat">
+                        <i data-lucide="trash-2" class="h-5 w-5"></i>
+                    </button>
+                </header>
+
+                <!-- Drop overlay (drag & drop photos) -->
+                <div id="drop-overlay"
+                    class="pointer-events-none absolute inset-0 z-30 hidden items-center justify-center bg-ink-950/85 text-cyan-100">
+                    <div
+                        class="flex flex-col items-center gap-2 rounded-2xl border-2 border-dashed border-neon-cyan px-10 py-8">
+                        <i data-lucide="image-plus" class="h-10 w-10"></i>
+                        <p class="font-semibold">Drop the photo here</p>
+                    </div>
+                </div>
+
+                <!-- Messages Area -->
+                <div id="messages-container" class="chat-grid flex-1 overflow-y-auto overscroll-contain px-3 pb-4 sm:px-4 md:px-6"
+                    aria-live="polite">
+                    <div id="messages-list" class="flex min-h-full flex-col justify-end pb-2">
+                        <!-- Empty State -->
+                        <div id="empty-state"
+                            class="flex flex-1 flex-col items-center justify-center py-20 text-slate-400">
+                            <div class="mb-4 rounded-full border border-ink-600 bg-ink-800 p-6">
+                                <i data-lucide="send" class="h-12 w-12 text-cyan-300/70"></i>
+                            </div>
+                            <p class="text-sm">No messages yet. Say hello!</p>
+                        </div>
+                        <!-- Messages injected here -->
+                    </div>
+                </div>
+
+                <!-- Input Area -->
+                <div class="shrink-0 border-t border-ink-600 bg-ink-900 px-2 py-2 sm:px-4 sm:py-3 md:px-6"
+                    style="padding-bottom: max(0.5rem, env(safe-area-inset-bottom));">
+                    <!-- Photo preview (shown after a photo is selected) -->
+                    <div id="photo-preview" class="panel mb-2 hidden items-center gap-3 rounded-2xl bg-ink-800 p-2 pr-1">
+                        <img id="photo-preview-img" alt="Selected photo preview"
+                            class="h-16 w-16 shrink-0 rounded-lg bg-ink-700 object-cover">
+                        <div class="min-w-0 flex-1">
+                            <p id="photo-preview-name" class="truncate text-sm font-medium text-slate-100"></p>
+                            <p id="photo-preview-size" class="text-xs text-slate-300"></p>
+                            <p class="text-xs text-slate-400">Any text you type will be sent as the caption.</p>
+                        </div>
+                        <button id="photo-remove-btn" type="button" class="icon-btn"
+                            aria-label="Remove selected photo">
+                            <i data-lucide="x" class="h-5 w-5"></i>
+                        </button>
+                    </div>
+
+                    <!-- Error / info message -->
+                    <p id="composer-error" role="alert" class="mb-2 hidden px-2 text-xs text-red-300"></p>
+
+                    <!-- Emoji picker -->
+                    <div id="emoji-picker" role="listbox" aria-label="Emoji"
+                        class="panel mb-2 hidden grid-cols-6 gap-1 rounded-2xl bg-ink-800 p-2 sm:max-w-sm sm:grid-cols-8">
+                    </div>
+
+                    <div
+                        class="flex items-end gap-1 rounded-3xl border border-ink-600 bg-ink-800 px-1 py-1 transition-[border-color,box-shadow] duration-150 focus-within:border-cyan-400/60 sm:gap-2 sm:px-2">
+                        <button id="emoji-btn" type="button" class="icon-btn" aria-label="Insert emoji"
+                            aria-controls="emoji-picker" aria-expanded="false">
+                            <i data-lucide="smile" class="h-6 w-6"></i>
+                        </button>
+                        <button id="attach-btn" type="button" class="icon-btn" aria-label="Attach a photo"
+                            title="Attach a photo (JPG, PNG, WEBP up to 20 MB, compressed before sending; GIF up to 5 MB)">
+                            <i data-lucide="paperclip" class="h-[22px] w-[22px]"></i>
+                        </button>
+                        <input type="file" id="photo-input" class="hidden"
+                            accept="image/jpeg,image/png,image/gif,image/webp">
+
+                        <label for="message-input" class="sr-only">Message</label>
+                        <textarea id="message-input" placeholder="Type a message…" maxlength="2000" rows="1"
+                            enterkeyhint="send"
+                            class="max-h-32 min-h-[44px] min-w-0 flex-1 resize-none overflow-y-auto bg-transparent px-1 py-2.5 text-base text-slate-100 placeholder-slate-400 focus:outline-none"></textarea>
+
+                        <button id="send-btn" type="button" aria-label="Send"
+                            class="icon-btn disabled:opacity-50" disabled>
+                            <i data-lucide="send" class="ml-0.5 h-5 w-5"></i>
+                        </button>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Clear chat confirmation -->
+    <div id="clear-dialog" class="fixed inset-0 z-[70] hidden items-center justify-center bg-ink-950/85 p-4"
+        role="dialog" aria-modal="true" aria-labelledby="clear-dialog-title" aria-describedby="clear-dialog-text">
+        <div class="panel neon-frame w-full max-w-sm rounded-2xl p-6">
+            <h2 id="clear-dialog-title" class="text-lg font-semibold text-slate-100">Clear the chat?</h2>
+            <p id="clear-dialog-text" class="mt-2 text-sm text-slate-300">All messages and photos saved in this
+                browser will be deleted. This cannot be undone. Other users keep their own copy.</p>
+            <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                <button id="clear-cancel-btn" type="button" class="ghost-btn">Cancel</button>
+                <button id="clear-confirm-btn" type="button" class="danger-btn">Clear chat</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Lightbox (full-size photo) -->
+    <div id="lightbox" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/90 p-4"
+        role="dialog" aria-modal="true" aria-label="Photo preview">
+        <button id="lightbox-close" type="button"
+            class="icon-btn absolute right-3 top-3 bg-white/10 text-white hover:bg-white/20"
+            style="margin-top: env(safe-area-inset-top);" aria-label="Close photo">
+            <i data-lucide="x" class="h-6 w-6"></i>
+        </button>
+        <img id="lightbox-img" alt="" class="max-h-full max-w-full rounded-lg object-contain">
+    </div>
+</body>
+
+</html>
